@@ -82,6 +82,9 @@ class RecoverOriginMedia(_PluginBase):
     
     def __handle_file(self, item: TransferHistory):
         logger.info(f"准备恢复文件: {item.dest} => {item.src}")
+        if not item.dest or not item.src:
+            logger.error(f"缺少路径. 源文件: {item.src}, 刮削文件: {item.dest}")
+            return
         dest_path = Path(item.dest)
         src_path = Path(item.src)
         try:
@@ -118,6 +121,9 @@ class RecoverOriginMedia(_PluginBase):
 
         source = Path(source)
         link_name = Path(dest)
+
+        # 创建父目录（如果不存在）
+        link_name.parent.mkdir(parents=True, exist_ok=True)
         try:
             link_name.hardlink_to(source)
             # logger.info(f"成功创建硬链接: {source} -> {link_name}")
