@@ -40,6 +40,7 @@ class RecoverOriginMedia(_PluginBase):
 
     _enabled = False
     _onlyonce = False
+    _search_title = ""
 
     def init_plugin(self, config: dict = None):
         self.transferhis = TransferHistoryOper()
@@ -48,6 +49,7 @@ class RecoverOriginMedia(_PluginBase):
             self._only_print = config.get("only_print")
             self._recover_number = int(config.get("recover_number"))
             self._onlyonce = config.get("onlyonce")
+            self._search_title = config.get("search_title")
         
         if self._onlyonce:
             logger.info("恢复源媒体文件，立即运行一次")
@@ -67,24 +69,34 @@ class RecoverOriginMedia(_PluginBase):
             count = 10
             handle_count = 0
             while True:
-                transferhistories = TransferHistory.list_by_page(db, page, count, True)
+                transferhistories = self.__get_history(db, page, count)
                 for item in transferhistories:
-                    if handle_count >= self._recover_number:
+                    if self._recover_number != 0 and handle_count >= self._recover_number:
                         break
                     skip = self.__handle_file(item)
                     if not skip:
                         handle_count += 1
                 page += 1
-                if handle_count >= self._recover_number:
+                if self._recover_number != 0 and handle_count >= self._recover_number:
                     break
                 if len(transferhistories) == 0:  # 退出条件
                     break
     
+    def __get_history(self, db, page: int, count: int):
+        if self._search_title:
+            logger.info(f"list_by_title: {self._search_title}")
+            return TransferHistory.list_by_title(db, self._search_title, page, count)
+        else:
+            logger.info(f"list_by_page")
+            return TransferHistory.list_by_page(db, page, count, True)
+
+    
     def __handle_file(self, item: TransferHistory):
         logger.info(f"准备恢复文件: {item.dest} => {item.src}")
-        if not item.dest or not item.src:
-            logger.error(f"缺少路径. 源文件: {item.src}, 刮削文件: {item.dest}")
-            return
+        
+        if not item.status:
+            logger.error(f"失败的整理记录. 跳过. ")
+            return 1
         dest_path = Path(item.dest)
         src_path = Path(item.src)
         try:
@@ -163,6 +175,7 @@ class RecoverOriginMedia(_PluginBase):
             "onlyonce": self._onlyonce,
             "only_print": self._only_print,
             "recover_number": self._recover_number,
+            "search_title": self._search_title
         })
 
     def get_form(self) -> Tuple[List[dict], Dict[str, Any]]:
@@ -242,6 +255,27 @@ class RecoverOriginMedia(_PluginBase):
                                             'model': 'recover_number',
                                             'label': '恢复的条目数量（整理记录）',
                                             'placeholder': '例如: 10。0 代表恢复所有记录',
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        'component': 'VRow',
+                        'content': [
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 4
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
+                                            'model': 'search_title',
+                                            'label': '搜索过滤(中文名称, 原路径名, 刮削路径名)'
                                         }
                                     }
                                 ]
