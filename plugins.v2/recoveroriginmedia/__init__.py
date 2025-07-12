@@ -67,7 +67,7 @@ class RecoverOriginMedia(_PluginBase):
             count = 10
             handle_count = 0
             while True:
-                transferhistories = TransferHistory.list_by_page(db, page, count)
+                transferhistories = TransferHistory.list_by_page(db, page, count, True)
                 for item in transferhistories:
                     if handle_count >= self._recover_number:
                         break
