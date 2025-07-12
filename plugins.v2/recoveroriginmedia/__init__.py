@@ -66,7 +66,7 @@ class RecoverOriginMedia(_PluginBase):
 
         with SessionFactory() as db:
             page = 1
-            count = 10
+            count = 50
             handle_count = 0
             while True:
                 transferhistories = self.__get_history(db, page, count)
